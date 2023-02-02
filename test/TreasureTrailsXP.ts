@@ -1,16 +1,22 @@
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import { assert } from 'chai';
+import { assert, expect } from 'chai';
 import { ethers } from 'hardhat';
 import { TreasureTrailsXP } from '../typechain-types';
+import { ACTIVITY_TYPE } from './enums';
 
 describe('TreasureTrailsXP', function () {
   async function deployTreasure() {
     const [owner, otherAccount] = await ethers.getSigners();
 
     const TreasureTrailsXP = await ethers.getContractFactory(
-      'TreasureTrailsXP'
+      'TreasureTrailsXP',
+      {
+        libraries: {
+          Utils: process.env.UTILS_ADDRESS || '',
+        },
+      }
     );
-    const treasureTrailsXP = await TreasureTrailsXP.deploy();
+    const treasureTrailsXP = await TreasureTrailsXP.deploy('Disney', 3);
 
     return { treasureTrailsXP, owner, otherAccount };
   }
@@ -19,7 +25,7 @@ describe('TreasureTrailsXP', function () {
     it('Add a Ticket', async function () {
       const { treasureTrailsXP } = await loadFixture(deployTreasure);
 
-      const name = 'General Ticket';
+      const name = 'General2 Ticket';
       const date = new Date();
       date.setHours(date.getHours() + 4);
 
@@ -43,13 +49,51 @@ describe('TreasureTrailsXP', function () {
         30,
         0,
         date.getTime(),
-        0
+        ACTIVITY_TYPE.CHALLENGE
       );
       await treasureTrailsXP.toggleActivity(0, true);
 
-      const challenges = await treasureTrailsXP.getActiveChallenges();
+      const challenges = await treasureTrailsXP.getActiveActivities(
+        ACTIVITY_TYPE.CHALLENGE
+      );
 
       assert.equal(challenges.length, 1);
+    });
+
+    it('Add an Attraction', async function () {
+      const { treasureTrailsXP } = await loadFixture(deployTreasure);
+
+      // Crear Atracción
+      const name = 'SuperLoop2';
+      const description = 'Superloca montañarusa';
+      let date = new Date();
+      date.setHours(date.getMinutes() + 5);
+
+      await treasureTrailsXP.addActivity(
+        name,
+        description,
+        0,
+        10,
+        date.getTime(),
+        ACTIVITY_TYPE.ATTRACTION
+      );
+      await treasureTrailsXP.toggleActivity(0, true);
+      const attractions = await treasureTrailsXP.getActiveActivities(
+        ACTIVITY_TYPE.ATTRACTION
+      );
+
+      await expect(
+        treasureTrailsXP.addActivity(
+          name,
+          description,
+          0,
+          10,
+          date.getTime(),
+          ACTIVITY_TYPE.ATTRACTION
+        )
+      ).to.be.reverted;
+
+      assert.equal(attractions.length, 1);
     });
   });
 
@@ -58,11 +102,11 @@ describe('TreasureTrailsXP', function () {
       const { treasureTrailsXP } = await loadFixture(deployTreasure);
 
       const name = 'General Ticket';
-      const date = new Date();
-      date.setHours(date.getHours() + 4);
+      const durationInDays = 1;
 
-      await treasureTrailsXP.addTicket(name, 150, date.getTime(), 50);
-      await treasureTrailsXP.addTicket(`${name} - 2`, 150, date.getTime(), 50);
+      await treasureTrailsXP.addTicket(name, 150, durationInDays, 50);
+      await treasureTrailsXP.addTicket(`${name} - 2`, 150, durationInDays, 50);
+
       const tickets = await treasureTrailsXP.getTickets();
 
       assert.equal(tickets.length, 2);
@@ -73,13 +117,17 @@ describe('TreasureTrailsXP', function () {
       );
 
       const name = 'General Ticket';
-      const date = new Date();
-      date.setHours(date.getHours() + 4);
+      const durationInDays = 1;
 
-      await treasureTrailsXP.addTicket(name, 150, date.getTime(), 50);
-      await treasureTrailsXP.addTicket(`${name} - 2`, 150, date.getTime(), 50);
+      await treasureTrailsXP.addTicket(name, 150, durationInDays, 50);
+      await treasureTrailsXP.addTicket(`${name} - 2`, 150, durationInDays, 50);
 
       await treasureTrailsXP.connect(otherAccount).buyTicket(0, { value: 150 });
+
+      await expect(
+        treasureTrailsXP.connect(otherAccount).buyTicket(0, { value: 150 })
+      ).to.be.reverted;
+
       const myTickets = await treasureTrailsXP
         .connect(otherAccount)
         .getMyTickets();
@@ -100,15 +148,14 @@ describe('TreasureTrailsXP', function () {
 
       // Crear Ticket
       let name = 'General Ticket';
-      let date = new Date();
-      date.setHours(date.getHours() + 4);
+      const durationInDays = 1;
 
-      await treasureTrailsXP.addTicket(name, 150, date.getTime(), 50);
+      await treasureTrailsXP.addTicket(name, 150, durationInDays, 50);
 
       // Crear Challenge
       name = 'Foto con Pluto';
       let description = 'Escanea el QR que plto tiene y gana 20 puntos';
-      date = new Date();
+      let date = new Date();
       date.setHours(date.getMinutes() + 5);
 
       await treasureTrailsXP.addActivity(
@@ -117,7 +164,7 @@ describe('TreasureTrailsXP', function () {
         30,
         0,
         date.getTime(),
-        0
+        ACTIVITY_TYPE.CHALLENGE
       );
       await treasureTrailsXP.toggleActivity(0, true);
 
@@ -133,9 +180,9 @@ describe('TreasureTrailsXP', function () {
         0,
         10,
         date.getTime(),
-        2
+        ACTIVITY_TYPE.ATTRACTION
       );
-      await treasureTrailsXP.toggleActivity(0, true);
+      await treasureTrailsXP.toggleActivity(1, true);
 
       ticket = await treasureTrailsXP.connect(otherAccount).getTicket(0);
       await treasureTrailsXP.connect(otherAccount).buyTicket(0, { value: 150 });
@@ -211,6 +258,312 @@ describe('TreasureTrailsXP', function () {
       assert.equal(
         `${creditsAfterExit}`,
         creditsAfter.add(activity.earnCredits).toString()
+      );
+    });
+  });
+
+  describe('Restaurant', function () {
+    it('Add a Restaurant', async function () {
+      const { treasureTrailsXP } = await loadFixture(deployTreasure);
+
+      const name = 'Lomiton';
+
+      await treasureTrailsXP.addRestaurant(name);
+
+      const restaurants = await treasureTrailsXP.getRestaurants();
+
+      assert.equal(restaurants.length, 1);
+    });
+
+    it('Add a Meal', async function () {
+      const { treasureTrailsXP } = await loadFixture(deployTreasure);
+
+      // Crear Comida
+      let name = 'Hamburguesa Brasileña';
+      let description = 'Carne-Palta-Queso';
+
+      await treasureTrailsXP.addActivity(
+        name,
+        description,
+        0,
+        20,
+        0,
+        ACTIVITY_TYPE.MEAL
+      );
+
+      await treasureTrailsXP.toggleActivity(0, true);
+
+      const activities = await treasureTrailsXP.getActiveActivities(
+        ACTIVITY_TYPE.MEAL
+      );
+
+      assert.equal(activities.length, 1);
+    });
+  });
+
+  describe('Restaurante', function () {
+    let treasureTrailsXP: TreasureTrailsXP;
+    let otherAccount: any;
+    let ticket: any;
+
+    beforeEach(async () => {
+      const salida = await loadFixture(deployTreasure);
+      treasureTrailsXP = salida.treasureTrailsXP;
+      otherAccount = salida.otherAccount;
+
+      await treasureTrailsXP.addRestaurant('Lomiton');
+
+      await treasureTrailsXP.addTicket(
+        'General',
+        ethers.utils.parseEther('0.01'),
+        1,
+        50
+      );
+
+      // Create Meal
+      let name = 'Completo Italiano';
+      let description = 'Tomate-Palta-Mayo';
+
+      await treasureTrailsXP.addActivity(
+        name,
+        description,
+        0,
+        20,
+        0,
+        ACTIVITY_TYPE.MEAL
+      );
+      await treasureTrailsXP.toggleActivity(0, true);
+
+      name = 'Churrasco Brasileño';
+      description = 'Carne-Palta-Queso';
+
+      await treasureTrailsXP.addActivity(
+        name,
+        description,
+        0,
+        15,
+        0,
+        ACTIVITY_TYPE.MEAL
+      );
+      await treasureTrailsXP.toggleActivity(1, true);
+
+      name = 'Churrasco Italiano';
+      description = 'Carne-Palta-Tomate';
+
+      await treasureTrailsXP.addActivity(
+        name,
+        description,
+        0,
+        15,
+        0,
+        ACTIVITY_TYPE.MEAL
+      );
+      await treasureTrailsXP.toggleActivity(2, true);
+
+      name = 'Ass Italiano';
+      description = 'Carne-Palta-Tomate';
+
+      await treasureTrailsXP.addActivity(
+        name,
+        description,
+        0,
+        15,
+        0,
+        ACTIVITY_TYPE.MEAL
+      );
+      await treasureTrailsXP.toggleActivity(3, true);
+
+      await treasureTrailsXP
+        .connect(otherAccount)
+        .buyTicket(0, { value: ethers.utils.parseEther('0.01') });
+    });
+
+    it('Create Menu', async function () {
+      const activities = await treasureTrailsXP.getActivities();
+
+      const menu = new Array();
+
+      activities.forEach((m, i) => {
+        if (m.activityType === ACTIVITY_TYPE.MEAL && m.isActive && i % 2 === 0)
+          menu.push(i);
+      });
+
+      await treasureTrailsXP.setMenuRestaurant(0, menu);
+
+      const menuRestaurant = await treasureTrailsXP.getMenuRestaurant(0);
+      const idsMenuRestaurant = await treasureTrailsXP.getIdsMenuRestaurant(0);
+
+      assert.equal(menuRestaurant.length, idsMenuRestaurant.length);
+    });
+
+    it('Order a Meal', async function () {
+      const activities = await treasureTrailsXP.getActivities();
+
+      const menu = new Array();
+
+      activities.forEach((m, i) => {
+        if (m.activityType === ACTIVITY_TYPE.MEAL && m.isActive) menu.push(i);
+      });
+
+      await treasureTrailsXP.setMenuRestaurant(0, menu);
+
+      let creditsBefore = await treasureTrailsXP
+        .connect(otherAccount)
+        .getCredits();
+
+      const mealsToBuy = [0, 2];
+
+      let mealCredits = ethers.BigNumber.from(0);
+      mealsToBuy.forEach((m) => {
+        mealCredits = mealCredits.add(activities[m].discountCredits);
+      });
+
+      await treasureTrailsXP.connect(otherAccount).buyMeals(0, mealsToBuy);
+
+      let creditsAfter = await treasureTrailsXP
+        .connect(otherAccount)
+        .getCredits();
+
+      assert.equal(
+        creditsBefore.sub(mealCredits).toString(),
+        creditsAfter.toString()
+      );
+    });
+  });
+
+  describe('Store', function () {
+    let treasureTrailsXP: TreasureTrailsXP;
+    let otherAccount: any;
+    let ticket: any;
+
+    beforeEach(async () => {
+      const salida = await loadFixture(deployTreasure);
+      treasureTrailsXP = salida.treasureTrailsXP;
+      otherAccount = salida.otherAccount;
+
+      await treasureTrailsXP.addStore('Oakley');
+
+      await treasureTrailsXP.addTicket(
+        'General',
+        ethers.utils.parseEther('0.01'),
+        1,
+        50
+      );
+
+      // Create Meal
+      let name = 'Lentes Bacanes';
+      let description = 'de colores';
+
+      await treasureTrailsXP.addActivity(
+        name,
+        description,
+        0,
+        20,
+        0,
+        ACTIVITY_TYPE.PRODUCT
+      );
+      await treasureTrailsXP.toggleActivity(0, true);
+
+      name = 'Gorro de los Jets';
+      description = 'Verde con Blanco';
+
+      await treasureTrailsXP.addActivity(
+        name,
+        description,
+        0,
+        15,
+        0,
+        ACTIVITY_TYPE.PRODUCT
+      );
+      await treasureTrailsXP.toggleActivity(1, true);
+
+      name = 'Guante de Baseball';
+      description = 'de los Mets';
+
+      await treasureTrailsXP.addActivity(
+        name,
+        description,
+        0,
+        15,
+        0,
+        ACTIVITY_TYPE.PRODUCT
+      );
+      await treasureTrailsXP.toggleActivity(2, true);
+
+      name = 'Zapatillas tillas';
+      description = 'coolisimas';
+
+      await treasureTrailsXP.addActivity(
+        name,
+        description,
+        0,
+        15,
+        0,
+        ACTIVITY_TYPE.PRODUCT
+      );
+      await treasureTrailsXP.toggleActivity(3, true);
+
+      await treasureTrailsXP
+        .connect(otherAccount)
+        .buyTicket(0, { value: ethers.utils.parseEther('0.01') });
+    });
+
+    it('Create store setup', async function () {
+      const activities = await treasureTrailsXP.getActivities();
+
+      const products = new Array();
+
+      activities.forEach((m, i) => {
+        if (
+          m.activityType === ACTIVITY_TYPE.PRODUCT &&
+          m.isActive &&
+          i % 2 === 0
+        )
+          products.push(i);
+      });
+
+      await treasureTrailsXP.setProductsStore(0, products);
+
+      const productsStore = await treasureTrailsXP.getProductsStore(0);
+      const idsProductsStore = await treasureTrailsXP.getIdsProductsStore(0);
+
+      assert.equal(productsStore.length, idsProductsStore.length);
+    });
+
+    it('Order my gifts', async function () {
+      const activities = await treasureTrailsXP.getActivities();
+
+      const products = new Array();
+
+      activities.forEach((m, i) => {
+        if (m.activityType === ACTIVITY_TYPE.PRODUCT && m.isActive)
+          products.push(i);
+      });
+
+      await treasureTrailsXP.setProductsStore(0, products);
+
+      let creditsBefore = await treasureTrailsXP
+        .connect(otherAccount)
+        .getCredits();
+
+      const productsToBuy = [0, 2];
+
+      let productsCredits = ethers.BigNumber.from(0);
+      productsToBuy.forEach((m) => {
+        productsCredits = productsCredits.add(activities[m].discountCredits);
+      });
+
+      await treasureTrailsXP
+        .connect(otherAccount)
+        .buyProducts(0, productsToBuy);
+
+      let creditsAfter = await treasureTrailsXP
+        .connect(otherAccount)
+        .getCredits();
+
+      assert.equal(
+        creditsBefore.sub(productsCredits).toString(),
+        creditsAfter.toString()
       );
     });
   });

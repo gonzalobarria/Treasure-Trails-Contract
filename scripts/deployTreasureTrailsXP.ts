@@ -1,7 +1,11 @@
 import { ethers } from 'hardhat';
 
 async function main() {
-  const TreasureTrailsXP = await ethers.getContractFactory('TreasureTrailsXP');
+  const TreasureTrailsXP = await ethers.getContractFactory('TreasureTrailsXP', {
+    libraries: {
+      Utils: process.env.UTILS_ADDRESS || '',
+    },
+  });
   const treasureTrailsXP = await TreasureTrailsXP.deploy(
     'TreasureTrailsPark',
     3

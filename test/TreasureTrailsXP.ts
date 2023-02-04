@@ -26,10 +26,13 @@ describe('TreasureTrailsXP', function () {
       const { treasureTrailsXP } = await loadFixture(deployTreasure);
 
       const name = 'General2 Ticket';
-      const date = new Date();
-      date.setHours(date.getHours() + 4);
 
-      await treasureTrailsXP.addTicket(name, 150, date.getTime(), 50);
+      await treasureTrailsXP.addTicket(
+        name,
+        ethers.utils.parseEther('0.01'),
+        1,
+        50
+      );
       const ticket = await treasureTrailsXP.getTicket(0);
 
       assert.equal(name, ticket.name);
@@ -104,8 +107,18 @@ describe('TreasureTrailsXP', function () {
       const name = 'General Ticket';
       const durationInDays = 1;
 
-      await treasureTrailsXP.addTicket(name, 150, durationInDays, 50);
-      await treasureTrailsXP.addTicket(`${name} - 2`, 150, durationInDays, 50);
+      await treasureTrailsXP.addTicket(
+        name,
+        ethers.utils.parseEther('0.01'),
+        durationInDays,
+        50
+      );
+      await treasureTrailsXP.addTicket(
+        `${name} - 2`,
+        ethers.utils.parseEther('0.015'),
+        durationInDays,
+        70
+      );
 
       const tickets = await treasureTrailsXP.getTickets();
 
@@ -119,8 +132,18 @@ describe('TreasureTrailsXP', function () {
       const name = 'General Ticket';
       const durationInDays = 1;
 
-      await treasureTrailsXP.addTicket(name, 150, durationInDays, 50);
-      await treasureTrailsXP.addTicket(`${name} - 2`, 150, durationInDays, 50);
+      await treasureTrailsXP.addTicket(
+        name,
+        ethers.utils.parseEther('0.01'),
+        durationInDays,
+        50
+      );
+      await treasureTrailsXP.addTicket(
+        `${name} - 2`,
+        ethers.utils.parseEther('0.015'),
+        durationInDays,
+        70
+      );
 
       await treasureTrailsXP.connect(otherAccount).buyTicket(0, { value: 150 });
 
@@ -150,7 +173,12 @@ describe('TreasureTrailsXP', function () {
       let name = 'General Ticket';
       const durationInDays = 1;
 
-      await treasureTrailsXP.addTicket(name, 150, durationInDays, 50);
+      await treasureTrailsXP.addTicket(
+        name,
+        ethers.utils.parseEther('0.01'),
+        durationInDays,
+        50
+      );
 
       // Crear Challenge
       name = 'Foto con Pluto';

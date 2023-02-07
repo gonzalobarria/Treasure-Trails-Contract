@@ -145,10 +145,14 @@ describe('TreasureTrailsXP', function () {
         70
       );
 
-      await treasureTrailsXP.connect(otherAccount).buyTicket(0, { value: 150 });
+      await treasureTrailsXP
+        .connect(otherAccount)
+        .buyTicket(0, { value: ethers.utils.parseEther('0.01') });
 
       await expect(
-        treasureTrailsXP.connect(otherAccount).buyTicket(0, { value: 150 })
+        treasureTrailsXP
+          .connect(otherAccount)
+          .buyTicket(0, { value: ethers.utils.parseEther('0.01') })
       ).to.be.reverted;
 
       const myTickets = await treasureTrailsXP
@@ -213,7 +217,9 @@ describe('TreasureTrailsXP', function () {
       await treasureTrailsXP.toggleActivity(1, true);
 
       ticket = await treasureTrailsXP.connect(otherAccount).getTicket(0);
-      await treasureTrailsXP.connect(otherAccount).buyTicket(0, { value: 150 });
+      await treasureTrailsXP
+        .connect(otherAccount)
+        .buyTicket(0, { value: ethers.utils.parseEther('0.01') });
     });
 
     it('Win a Challenge', async function () {

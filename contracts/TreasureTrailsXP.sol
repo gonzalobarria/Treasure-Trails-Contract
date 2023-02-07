@@ -175,6 +175,35 @@ contract TreasureTrailsXP is TreasureTrailsXPSetup {
         credits[msg.sender] -= total;
     }
 
+    // devuelve el id de los challenges que ha completado
+    function getChallengesCompleted() public view returns (uint[] memory) {
+        uint counter = 0;
+
+        for (uint i = 0; i < activities.length; i++) {
+            if (
+                activities[i].activityType == ActivityType.Challenge &&
+                activitiesPlayer[msg.sender][i] > 0
+            ) {
+                counter++;
+            }
+        }
+
+        uint[] memory challengesCompleted = new uint[](counter);
+
+        uint j = 0;
+        for (uint i = 0; i < activities.length; i++) {
+            if (
+                activities[i].activityType == ActivityType.Challenge &&
+                activitiesPlayer[msg.sender][i] > 0
+            ) {
+                challengesCompleted[j] = i;
+                j++;
+            }
+        }
+
+        return challengesCompleted;
+    }
+
     // cambia por token del parque
     function canjeaToken() public {
         // - solo puede canjear si tiene una entrada válida del día

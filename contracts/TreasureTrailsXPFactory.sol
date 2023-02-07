@@ -134,7 +134,7 @@ contract TreasureTrailsXPFactory is Ownable {
                 description: _description,
                 earnCredits: _earnCredits,
                 discountCredits: _discountCredits,
-                isActive: false,
+                isActive: true,
                 expiresAt: _expiresAt,
                 activityType: _activityType
             })
@@ -196,4 +196,8 @@ contract TreasureTrailsXPFactory is Ownable {
 
         productsStore[_storeIndex] = _products;
     }
+
+    receive() external payable {}
+
+    fallback() external payable {}
 }

@@ -47,7 +47,7 @@ contract TreasureTrailsXP is TreasureTrailsXPSetup {
         ticketsPlayer[msg.sender].push(
             TicketPlayer({ticketIndex: _ticketIndex, expiresAt: expiresAt})
         );
-        credits[msg.sender] = tickets[_ticketIndex].initialCredits;
+        credits[msg.sender] += tickets[_ticketIndex].initialCredits;
     }
 
     function entranceAttraction(uint _activityIndex) public {
